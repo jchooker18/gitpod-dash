@@ -8,8 +8,7 @@ import pandas as pd
 
 df = pd.read_csv('https://bit.ly/elements-periodic-table')
 
-def identity(x): return x
-
+# create pivot table to display initial data
 pt = df.pivot_table(
   index='Period',
   columns='Group', 
@@ -17,6 +16,7 @@ pt = df.pivot_table(
   aggfunc=list,
 )
 
+# convert back to df
 pt_df = pd.DataFrame(pt.to_records())
 
 
@@ -25,39 +25,67 @@ app = dash.Dash(__name__)
 app.layout = html.Div(
   className="main",
   children= [
-    html.H2('Test'),
+    html.H2('Periodic Pivot Table'),
+
+    # create dropdowns allowing user to select index, columns, and values
+    # for the pivot table; include labels
     html.Div(
       className="input-container",
       children=[
-        dcc.Dropdown(
-          className="dropdown",
-          id="index-dropdown",
-          options=[{"label": i, "value": i} for i in df.columns],
-          multi=False,
-          value="Period"),
-        dcc.Dropdown(
-          className="dropdown",
-          id="columns-dropdown",
-          options=[{"label": i, "value": i} for i in df.columns],
-          multi=False,
-          value="Group"),
-        dcc.Dropdown(
-          className="dropdown",
-          id="values-dropdown",
-          options=[{"label": i, "value": i} for i in df.columns],
-          multi=False,
-          value="Element"),
+        html.Div(
+          children=[
+            html.Label('Choose index:', className="label"),
+            dcc.Dropdown(
+              className="dropdown",
+              id="index-dropdown",
+              options=[{"label": i, "value": i} for i in df.columns],
+              multi=False,
+              value="Period"),
+          ]
+        ),
+
+        html.Div(
+          children=[
+            html.Label('Choose columns:', className="label"),
+            dcc.Dropdown(
+              className="dropdown",
+              id="columns-dropdown",
+              options=[{"label": i, "value": i} for i in df.columns],
+              multi=False,
+              value="Group"),
+          ]
+        ),
+        
+        html.Div(
+          children=[
+            html.Label('Choose values:', className="label"),
+            dcc.Dropdown(
+              className="dropdown",
+              id="values-dropdown",
+              options=[{"label": i, "value": i} for i in df.columns],
+              multi=False,
+              value="Element"),
+          ]
+        ),
       ]
     ),
-    dash_table.DataTable(
-      id='table',
-      columns=[{"name": i, "id": i} for i in pt_df.columns],
-      # columns = [{"name": str(i), "id": str(i)} for i in pt.columns],
-      data=pt_df.to_dict('records'),
+
+    # render our pivot table
+    html.Div(
+      className="table",
+      children= [
+        dash_table.DataTable(
+        id='table',
+        columns=[{"name": i, "id": i} for i in pt_df.columns],
+        data=pt_df.to_dict('records')
+        )
+      ]
     )
   ]
 )
 
+# update the columns and data of the rendered pivot table when user
+# makes a change to any dropdown
 @app.callback(
   Output(component_id='table', component_property='columns'),
   Output(component_id='table', component_property='data'),
@@ -65,7 +93,7 @@ app.layout = html.Div(
   Input(component_id='columns-dropdown', component_property='value'),
   Input(component_id='values-dropdown', component_property='value'),
 )
-def update_cols(selected_index, selected_columns, selected_values):
+def update_table(selected_index, selected_columns, selected_values):
   pt = df.pivot_table(
     index=selected_index,
     columns=selected_columns, 
